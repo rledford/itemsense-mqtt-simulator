@@ -1,0 +1,31 @@
+{
+  "name": "itemsense-mqtt-simulator",
+  "version": "1.0.0",
+  "description": "Generates ItemSense threshold and item messages and publishes them to a target MQTT broker.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rledford/itemsense-mqtt-simulator.git"
+  },
+  "keywords": [
+    "mqtt",
+    "iot",
+    "itemsense",
+    "impinj",
+    "queue",
+    "simulator"
+  ],
+  "author": "rledford",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rledford/itemsense-mqtt-simulator/issues"
+  },
+  "homepage": "https://github.com/rledford/itemsense-mqtt-simulator#readme",
+  "dependencies": {
+    "@hapi/joi": "^17.1.0",
+    "mqtt": "^3.0.0"
+  }
+}
