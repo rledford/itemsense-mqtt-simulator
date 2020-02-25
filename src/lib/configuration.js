@@ -11,22 +11,24 @@ const configurationSchema = joi
       .default([]),
     thresholds: joi
       .array()
-      .items(
-        joi.object().keys({
-          in: joi.string().required(),
-          out: joi.string().required()
-        })
-      )
+      .items(joi.string())
       .default([]),
-    epcs: joi
-      .array()
-      .items(
-        joi
-          .string()
-          .hex()
-          .uppercase()
-      )
-      .default([]),
+    epcs: joi.object().keys({
+      use: joi
+        .array()
+        .items(
+          joi
+            .string()
+            .hex()
+            .uppercase()
+        )
+        .default([]),
+      total: joi
+        .number()
+        .integer()
+        .min(0)
+        .default(0)
+    }),
     tagHeartbeatDuration: joi
       .number()
       .integer()
@@ -37,7 +39,7 @@ const configurationSchema = joi
       .integer()
       .min(1000)
       .default(1000),
-    mqttConnection: joi.object().keys({
+    mqtt: joi.object().keys({
       host: joi
         .string()
         .default('localhost')
@@ -60,7 +62,7 @@ const configurationSchema = joi
         .string()
         .allow('')
         .default(''),
-      secured: joi.boolean().default(false),
+      auth: joi.boolean().default(false),
       username: joi
         .string()
         .allow('')
@@ -82,11 +84,14 @@ class Configuration {
    */
   constructor(path = '') {
     this.zones = ['zone'];
-    this.thresholds = [{ in: 'in', out: 'out' }];
-    this.epcs = ['0a1b2c3d4e5f6'];
+    this.thresholds = ['threshold'];
+    this.epcs = {
+      use: ['0a1b2c3d4e5f6'],
+      total: 0
+    };
     this.tagHeartbeatDuration = 1000;
     this.reportingInterval = 1000;
-    this.mqttConnection = {
+    this.mqtt = {
       host: 'localhost',
       port: 1833,
       topic: 'topic',
@@ -96,6 +101,10 @@ class Configuration {
       username: '',
       password: ''
     };
+    this.tls = false;
+    this.auth = true;
+    this.username = '';
+    this.password = '';
 
     this.__load(path);
   }
@@ -120,7 +129,6 @@ class Configuration {
 
     Object.assign(this, config);
     logger.info('configuration file loaded');
-    logger.info(JSON.stringify(this));
   }
 }
 
