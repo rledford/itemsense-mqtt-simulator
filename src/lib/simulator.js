@@ -1,38 +1,175 @@
 const mqtt = require('mqtt');
 const logger = require('./logger');
+const helpers = require('./helpers');
 const { Configuration } = require('./configuration');
 
 class Simulator {
   constructor(config = new Configuration()) {
-    this.mqttClient = null;
+    this.client = null;
     this.configuration = config;
-    this.nextUpdateTimeoutHandle = -1;
+    this.__nextUpdateTimeoutHandle = -1;
+    this.__started = false;
+    this.__epcTagHeartbeatMap = {};
   }
 
   start() {
+    if (this.__started) return;
+
+    clearTimeout(this.__nextUpdateTimeoutHandle);
+
+    this.__started = true;
+    this.__generateEpcs();
+
     const {
-      mqttConnection: { host, port, secured, username, password }
+      mqtt: { host, port, auth, username, password },
+      epcs,
+      tagHeartbeatDuration
     } = this.configuration;
-    const options = {};
 
-    clearTimeout(this.nextUpdateTimeoutHandle);
+    for (let epc of epcs.use) {
+      this.__epcTagHeartbeatMap[epc] = new Date(
+        Date.now() + Math.floor(Math.random() * tagHeartbeatDuration)
+      );
+    }
 
-    if (secured) {
+    const options = { connectionTimeout: 5000 };
+
+    if (auth) {
       Object.assign(options, { username, password });
     }
-    this.mqttClient = mqtt.connect(`mqtt://${host}:${port}`, options);
-    this.mqttClient.on('connect', () => {
-      logger.info('connected to mqtt broker');
-    });
 
-    this.nextUpdateTimeoutHandle = setTimeout();
+    logger.info(`connecting to mqtt broker [ mqtt://${host}:${port} ]`);
+
+    this.client = mqtt.connect(`mqtt://${host}:${port}`, options);
+    this.client.on('connect', () => {
+      logger.info('connected to mqtt broker');
+      if (this.__started) {
+        this.__prepareUpdate();
+      }
+    });
+  }
+
+  __prepareUpdate() {
+    this.__nextUpdateTimeoutHandle = setTimeout(() => {
+      this.__update();
+    }, this.configuration.reportingInterval);
   }
 
   __update() {
-    const { epcs, zones, thresholds } = this.configuration;
+    if (this.__started) {
+      const {
+        epcs: { use },
+        mqtt: { prefix, suffix },
+        zones,
+        thresholds,
+        tagHeartbeatDuration
+      } = this.configuration;
+
+      let type;
+      let msg;
+      let nMessages = 0;
+      const now = Date.now();
+      for (let i = 0; i < use.length; i++) {
+        if (this.__epcTagHeartbeatMap[use[i]].getTime() > now) continue;
+        nMessages++;
+        this.__epcTagHeartbeatMap[use[i]].setTime(now + tagHeartbeatDuration);
+        type =
+          Math.random() <= 0.5
+            ? thresholds.length
+              ? 'threshold'
+              : 'item'
+            : 'item';
+        switch (type) {
+          case 'item':
+            msg = this.__generateItemMessageForEpc(use[i]);
+            break;
+          case 'threshold':
+            msg = this.__generateThresholdMessageForEpc(use[i]);
+            break;
+        }
+        this.client.publish(
+          `${prefix ? prefix + '/' : ''}${type}${suffix ? '/' + suffix : ''}`,
+          JSON.stringify(msg)
+        );
+      }
+      logger.info(`sent [ ${nMessages} ] messages`);
+      this.__prepareUpdate();
+    }
+  }
+
+  __generateItemMessageForEpc(epc = '') {
+    return {
+      epc,
+      tagId: '',
+      jobId: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      jobName: 'jobName',
+      from: {
+        zone: 'ABSENT',
+        floor: null,
+        facility: null,
+        x: null,
+        y: null
+      },
+      to: {
+        zone: helpers.randInArray(this.configuration.zones),
+        floor: '1',
+        facility: 'DEFAULT',
+        x: 0.0,
+        y: 0.0
+      },
+      observationTime: new Date().toISOString()
+    };
+  }
+
+  __generateThresholdMessageForEpc(epc = '') {
+    const fromZone = helpers.randInArray(['IN', 'OUT']);
+    const toZone = fromZone === 'IN' ? 'OUT' : 'IN';
+    return {
+      epc,
+      fromZone,
+      toZone,
+      threshold: helpers.randInArray(this.configuration.thresholds),
+      thresholdId: 1,
+      confidence: 1.0,
+      jobId: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      jobName: 'threshold_job',
+      observationTime: new Date().toISOString()
+    };
+  }
+
+  __generateEpcs() {
+    const nEpcs =
+      this.configuration.epcs.total - this.configuration.epcs.use.length;
+    if (nEpcs <= 0) return;
+
+    logger.info(`generating [ ${nEpcs} ] epcs`);
+
+    let epc;
+    for (let i = 0; i < nEpcs; i++) {
+      epc = this.__generateRandomEpc();
+      this.configuration.epcs.use.push(epc);
+    }
+  }
+
+  __generateRandomEpc() {
+    let parts = [];
+    for (let i = 0; i < 13; i++) {
+      parts.push(
+        Math.abs((Math.random() * 0xff) << 0)
+          .toString(16)
+          .toUpperCase()
+      );
+    }
+
+    return parts.join('');
   }
 
   stop() {
-    clearTimeout(this.nextUpdateTimeoutHandle);
+    this.__started = false;
+    clearTimeout(this.__nextUpdateTimeoutHandle);
   }
 }
+
+module.exports = {
+  Simulator
+};
