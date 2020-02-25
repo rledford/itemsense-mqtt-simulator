@@ -17,7 +17,7 @@ Place a configuration file named `config.json` in the root of the application di
     "username": "username",
     "password": "password"
   },
-  "reportingInterval": "1000",
+  "reportingInterval": 1000,
   "tagHeartbeatDuration": 1000,
   "epcs": {
     "use": ["F0000000000000000000000000"],
