@@ -4,6 +4,11 @@ const helpers = require('./helpers');
 const { Configuration } = require('./configuration');
 
 class Simulator {
+  /**
+   * Simulates ItemSense threshold and item activity based on configuration settings and publishes events to an MQTT broker
+   *
+   * @param {Object} config a configuration object
+   */
   constructor(config = new Configuration()) {
     this.client = null;
     this.configuration = config;
