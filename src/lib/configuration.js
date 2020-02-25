@@ -50,10 +50,6 @@ const configurationSchema = joi
         .min(1)
         .max(65535)
         .default(1833),
-      topic: joi
-        .string()
-        .allow('')
-        .default(''),
       prefix: joi
         .string()
         .allow('')
