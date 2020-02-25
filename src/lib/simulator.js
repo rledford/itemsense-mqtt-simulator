@@ -1,4 +1,5 @@
 const mqtt = require('mqtt');
+const fs = require('fs');
 const logger = require('./logger');
 const helpers = require('./helpers');
 const { Configuration } = require('./configuration');
@@ -30,6 +31,15 @@ class Simulator {
       epcs,
       tagHeartbeatDuration
     } = this.configuration;
+
+    if (epcs.save && epcs.use.length) {
+      logger.info('saving epcs');
+      fs.writeFile(`${process.cwd()}/epcs.txt`, epcs.use.join('\n'), err => {
+        if (err) {
+          logger.error(`error saving epcs - ${err.message}`);
+        }
+      });
+    }
 
     for (let epc of epcs.use) {
       this.__epcTagHeartbeatMap[epc] = new Date(

@@ -27,7 +27,8 @@ const configurationSchema = joi
         .number()
         .integer()
         .min(0)
-        .default(0)
+        .default(0),
+      save: joi.boolean().default(false)
     }),
     tagHeartbeatDuration: joi
       .number()
@@ -83,7 +84,8 @@ class Configuration {
     this.thresholds = ['threshold'];
     this.epcs = {
       use: ['0a1b2c3d4e5f6'],
-      total: 0
+      total: 0,
+      save: false
     };
     this.tagHeartbeatDuration = 1000;
     this.reportingInterval = 1000;
