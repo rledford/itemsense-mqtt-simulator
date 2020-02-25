@@ -70,7 +70,7 @@ class Simulator {
         tagHeartbeatDuration
       } = this.configuration;
 
-      let type;
+      let topic;
       let msg;
       let nMessages = 0;
       const now = Date.now();
@@ -78,13 +78,13 @@ class Simulator {
         if (this.__epcTagHeartbeatMap[use[i]].getTime() > now) continue;
         nMessages++;
         this.__epcTagHeartbeatMap[use[i]].setTime(now + tagHeartbeatDuration);
-        type =
+        topic =
           Math.random() <= 0.5
             ? thresholds.length
               ? 'threshold'
               : 'item'
             : 'item';
-        switch (type) {
+        switch (topic) {
           case 'item':
             msg = this.__generateItemMessageForEpc(use[i]);
             break;
@@ -93,7 +93,7 @@ class Simulator {
             break;
         }
         this.client.publish(
-          `${prefix ? prefix + '/' : ''}${type}${suffix ? '/' + suffix : ''}`,
+          `${prefix ? prefix + '/' : ''}${topic}${suffix ? '/' + suffix : ''}`,
           JSON.stringify(msg)
         );
       }
