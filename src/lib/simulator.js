@@ -56,7 +56,7 @@ class Simulator {
     logger.info(`connecting to mqtt broker [ mqtt://${host}:${port} ]`);
 
     this.client = mqtt.connect(`mqtt://${host}:${port}`, options);
-    this.client.on('connect', () => {
+    this.client.once('connect', () => {
       logger.info('connected to mqtt broker');
       if (this.__started) {
         this.__prepareUpdate();
